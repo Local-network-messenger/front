@@ -38,18 +38,18 @@ fun ChatUI(state: ChatScreen.State, modifier: Modifier = Modifier) {
         ) {
             when (state.chats) {
                 is Async.Success -> {
-                    ChatColumn(state.chats.data, modifier.weight(0.3f))
+                    ChatColumn(state.chats.data, state.eventSink, modifier.weight(0.3f))
                 }
                 else -> {}
             }
             when (state.chosenChat) {
-                null -> EmptyChat(Modifier.weight(0.6f))
+                null -> EmptyChat(Modifier.weight(0.7f))
                 else -> {
                     when (state.messages) {
                         is Async.Success -> {
-                            Chat(state.messages.data, Modifier.weight(0.7f))
+                            Chat(state.messages.data, state.sendMessage, state.eventSink, Modifier.weight(0.7f))
                         }
-                        else -> {}
+                        else -> LoadingChat(Modifier.weight(0.7f))
                     }
                 }
             }
@@ -57,17 +57,14 @@ fun ChatUI(state: ChatScreen.State, modifier: Modifier = Modifier) {
     }
 }
 
+
 @Composable
-fun ChatColumn(chats: List<ChatData>, modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp)) {
-        item {
-            Text(
-                modifier = Modifier.padding(bottom = 10.dp),
-                text = "Чаты", style = MaterialTheme.typography.titleLarge)
-        }
-        items(items = chats) { chatData ->
-            ChatRow(chatData)
-        }
+fun LoadingChat(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = MaterialTheme.shapes.medium.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
+    ) {
     }
 }
 
@@ -85,25 +82,29 @@ fun EmptyChat(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Chat(messages: List<Message>, modifier: Modifier = Modifier) {
+fun Chat(messages: List<Message>, sendMessage: String, eventSink: (ChatEvent) -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.primaryContainer,
         shape = MaterialTheme.shapes.medium.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
     ) {
         Column {
-            MessageColumn(messages, Modifier.weight(0.9f))
+            MessageColumn(messages, Modifier.weight(0.85f))
             TextField(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp, start = 16.dp, end = 16.dp).weight(0.1f),
-                value = "",
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp, start = 16.dp, end = 16.dp).weight(0.15f),
+                value = sendMessage,
                 shape = MaterialTheme.shapes.medium,
                 placeholder = { Text("Введите сообщение") },
-                onValueChange = {},
-                colors = TextFieldDefaults.colors().copy(unfocusedContainerColor = MaterialTheme.colorScheme.secondary,
+                onValueChange = { eventSink(ChatEvent.ChangeMessage(it)) },
+                colors = TextFieldDefaults.colors().copy(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.secondary,
+                    focusedContainerColor = MaterialTheme.colorScheme.secondary,
                     unfocusedTextColor = MaterialTheme.colorScheme.surface,
                     focusedTextColor = MaterialTheme.colorScheme.surface,
-                    disabledTextColor = MaterialTheme.colorScheme.surface,
-                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.surface,),
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.surface,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.surface,
+                    cursorColor = MaterialTheme.colorScheme.surface,
+                    ),
             )
         }
     }
@@ -136,14 +137,28 @@ fun MessageRow(message: Message, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ChatRow(chat: ChatData, modifier: Modifier = Modifier) {
+fun ChatColumn(chats: List<ChatData>, eventSink: (ChatEvent) -> Unit, modifier: Modifier = Modifier) {
+    LazyColumn(modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp)) {
+        item {
+            Text(
+                modifier = Modifier.padding(bottom = 10.dp),
+                text = "Чаты", style = MaterialTheme.typography.titleLarge)
+        }
+        items(items = chats) { chatData ->
+            ChatRow(chatData, eventSink)
+        }
+    }
+}
+
+@Composable
+fun ChatRow(chat: ChatData, eventSink: (ChatEvent) -> Unit, modifier: Modifier = Modifier) {
     Button(
         modifier = modifier.padding(0.dp).fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
         ),
-        onClick = {}
+        onClick = { eventSink(ChatEvent.SelectChat(chat.uuid)) }
     ) {
         Column(modifier = modifier.padding(0.dp).fillMaxWidth()) {
             Text(chat.name, style = MaterialTheme.typography.labelLarge)
@@ -162,14 +177,15 @@ fun AppPreview() {
         ChatUI(
             ChatScreen.State(
                 chats = Async.Success(listOf(
-                    ChatData(id = 1, name = "Andrew"),
-                    ChatData(id = 2, name = "Arseniy")
+                    ChatData(uuid = "1", name = "Andrew"),
+                    ChatData(uuid = "2", name = "Arseniy")
                 )),
                 chosenChat = null,
                 messages = Async.Success(listOf(
-                    Message(id = 0, text = "Hello World"),
-                    Message(id = 0, text = "Hello World Hello World")
+                    Message(uuid = "0", text = "Hello World"),
+                    Message(uuid = "1", text = "Hello World Hello World")
                 )),
+                sendMessage = "",
                 eventSink = {}
             )
         )

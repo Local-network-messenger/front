@@ -3,15 +3,16 @@ package spbsu.jigokuraku01.front.user
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.onStart
+import java.util.UUID
 import kotlin.collections.emptyList
 
 interface UserRepository {
 //    val chats: StateFlow<Async<List<ChatData>>>
     fun loadChats() : Flow<Async<List<ChatData>>>
-    fun loadChat(chatId: Int) : Flow<Async<List<Message>>>
+    fun loadChat(chatId: String) : Flow<Async<List<Message>>>
     suspend fun loadNext()
 
-    suspend fun send(message: Message)
+    suspend fun send(message: String)
 
     suspend fun onLogin()
 }
@@ -24,24 +25,27 @@ class UserRepositoryTestImpl : UserRepository {
 
     override fun loadChats() = _chats.onStart { onLogin() }
 
-    override fun loadChat(chatId: Int) = _chat.onStart {
-        _chat.value = (Async.Success (listOf(Message(id = chatId, text = "Hello $chatId"))))
+    override fun loadChat(chatId: String) = _chat.onStart {
+        _chat.value = (Async.Success (listOf(Message(uuid = chatId, text = "Hello $chatId"))))
     }
 
     override suspend fun loadNext() {
         _chat.value = runAsync {
             val prev = _chat.value as Async.Success
             Async.Success(
-                List(20) { Message(id = it, "Старое сообщение: $it") } + prev.data
+                List(20) { Message(uuid = it.toString(), "Старое сообщение: $it") } + prev.data
             )
         }
     }
 
-    override suspend fun send(message: Message) {
+    override suspend fun send(message: String) {
         _chat.value = runAsync {
             val prev = _chat.value as Async.Success
             Async.Success(
-                prev.data.plus(message)
+                prev.data.plus(Message(
+                    uuid = UUID.randomUUID().toString(),
+                    text = message
+                ))
             )
         }
     }
@@ -49,11 +53,11 @@ class UserRepositoryTestImpl : UserRepository {
     override suspend fun onLogin() {
         val testChats = listOf(
             ChatData(
-                id = 0,
+                uuid = "0",
                 name = "Andrew"
             ),
             ChatData(
-                id = 1,
+                uuid = "1",
                 name = "Arseniy"
             )
         )

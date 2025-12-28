@@ -34,7 +34,7 @@ class SessionRepositoryTestImpl : SessionRepository {
     }
 
     override suspend fun login(username: String): Boolean {
-        _session.value = Session.LoggedIn(User(username))
+        _session.value = Session.LoggedIn(User(uuid = username, name = username))
         return true
     }
 }

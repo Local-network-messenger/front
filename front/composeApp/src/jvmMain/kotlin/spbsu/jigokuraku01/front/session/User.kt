@@ -7,5 +7,6 @@ package spbsu.jigokuraku01.front.session
  *
  */
 data class User(
+    val uuid: String,
     val name: String
 )
