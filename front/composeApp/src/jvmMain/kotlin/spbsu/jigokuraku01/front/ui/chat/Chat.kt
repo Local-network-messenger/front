@@ -3,6 +3,7 @@ package spbsu.jigokuraku01.front.ui.chat
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -10,11 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+//import androidx.compose.material.icons.Icons
+//import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +33,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import spbsu.jigokuraku01.front.ui.theme.AppTheme
 import spbsu.jigokuraku01.front.user.Async
@@ -34,7 +45,7 @@ fun ChatUI(state: ChatScreen.State, modifier: Modifier = Modifier) {
     Surface() {
         Row(
             modifier = modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             when (state.chats) {
                 is Async.Success -> {
@@ -47,7 +58,8 @@ fun ChatUI(state: ChatScreen.State, modifier: Modifier = Modifier) {
                 else -> {
                     when (state.messages) {
                         is Async.Success -> {
-                            Chat(state.messages.data, state.sendMessage, state.eventSink, Modifier.weight(0.7f))
+                            val user = state.chats
+                            Chat(state.chosenChat,state.messages.data, state.sendMessage, state.eventSink, Modifier.weight(0.7f))
                         }
                         else -> LoadingChat(Modifier.weight(0.7f))
                     }
@@ -82,14 +94,19 @@ fun EmptyChat(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Chat(messages: List<Message>, sendMessage: String, eventSink: (ChatEvent) -> Unit, modifier: Modifier = Modifier) {
+fun Chat(chat: ChatData, messages: List<Message>, sendMessage: String, eventSink: (ChatEvent) -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.primaryContainer,
         shape = MaterialTheme.shapes.medium.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0)),
     ) {
         Column {
-            MessageColumn(messages, Modifier.weight(0.85f))
+            Text(
+                modifier = Modifier.weight(0.15f).padding(all = 16.dp),
+                text = chat.name, style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            MessageColumn(messages, Modifier.weight(0.65f))
             TextField(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp, start = 16.dp, end = 16.dp).weight(0.15f),
                 value = sendMessage,
@@ -105,6 +122,18 @@ fun Chat(messages: List<Message>, sendMessage: String, eventSink: (ChatEvent) ->
                     focusedPlaceholderColor = MaterialTheme.colorScheme.surface,
                     cursorColor = MaterialTheme.colorScheme.surface,
                     ),
+                trailingIcon = {
+                    IconButton(
+                        modifier = Modifier.weight(0.2f),
+                        onClick = { eventSink(ChatEvent.SendMessage) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.Send,
+                            tint = MaterialTheme.colorScheme.surface,
+                            contentDescription = null,
+                        )
+                    }
+                }
             )
         }
     }
@@ -114,7 +143,8 @@ fun Chat(messages: List<Message>, sendMessage: String, eventSink: (ChatEvent) ->
 fun MessageColumn(messages: List<Message>, modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),) {
+        verticalArrangement = Arrangement.Bottom
+    ) {
         items(items = messages) { message ->
             MessageRow(message, modifier)
         }
@@ -123,16 +153,19 @@ fun MessageColumn(messages: List<Message>, modifier: Modifier = Modifier) {
 
 @Composable
 fun MessageRow(message: Message, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.height(30.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.onPrimaryContainer,
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            text = message.text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,)
+    BoxWithConstraints {
+        Surface(
+            modifier = modifier.widthIn(max = maxWidth * 0.75f).padding(top = 10.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
+            Text(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                text = message.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
@@ -141,8 +174,29 @@ fun ChatColumn(chats: List<ChatData>, eventSink: (ChatEvent) -> Unit, modifier: 
     LazyColumn(modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp)) {
         item {
             Text(
-                modifier = Modifier.padding(bottom = 10.dp),
+                modifier = Modifier.padding(bottom = 10.dp).height(30.dp),
                 text = "Чаты", style = MaterialTheme.typography.titleLarge)
+        }
+        item {
+            Button(
+                modifier = modifier.padding(0.dp).fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
+                ),
+                onClick = { eventSink(ChatEvent.newChat) }
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        modifier = Modifier.weight(0.2f),
+                        imageVector = Icons.Default.Add, contentDescription = null)
+                    Text(
+                        modifier = Modifier.weight(0.8f),
+                        text = "Новый чат", style = MaterialTheme.typography.titleMedium)
+                }
+            }
         }
         items(items = chats) { chatData ->
             ChatRow(chatData, eventSink)
@@ -158,7 +212,7 @@ fun ChatRow(chat: ChatData, eventSink: (ChatEvent) -> Unit, modifier: Modifier =
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
         ),
-        onClick = { eventSink(ChatEvent.SelectChat(chat.uuid)) }
+        onClick = { eventSink(ChatEvent.SelectChat(chat)) }
     ) {
         Column(modifier = modifier.padding(0.dp).fillMaxWidth()) {
             Text(chat.name, style = MaterialTheme.typography.labelLarge)
@@ -177,8 +231,8 @@ fun AppPreview() {
         ChatUI(
             ChatScreen.State(
                 chats = Async.Success(listOf(
-                    ChatData(uuid = "1", name = "Andrew"),
-                    ChatData(uuid = "2", name = "Arseniy")
+                    ChatData(dialogId = "1", userId = "1", name = "Andrew"),
+                    ChatData(dialogId = "2", userId = "2", name = "Arseniy")
                 )),
                 chosenChat = null,
                 messages = Async.Success(listOf(

@@ -5,6 +5,7 @@ import androidx.compose.ui.window.application
 import com.slack.circuit.foundation.Circuit
 import com.slack.circuit.foundation.CircuitCompositionLocals
 import com.slack.circuit.foundation.CircuitContent
+import com.slack.circuit.overlay.ContentWithOverlays
 import org.koin.compose.KoinApplication
 import org.koin.compose.koinInject
 import org.koin.core.context.GlobalContext.get
@@ -28,7 +29,9 @@ fun main() = application {
             val circuit: Circuit = koinInject()
             AppTheme {
                 CircuitCompositionLocals(circuit) {
-                    CircuitContent(ChatScreen)
+                    ContentWithOverlays {
+                        CircuitContent(ChatScreen)
+                    }
                 }
             }
         }

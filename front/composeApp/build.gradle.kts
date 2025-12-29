@@ -23,6 +23,8 @@ kotlin {
             implementation(libs.curcuit)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
+            implementation(compose.materialIconsExtended)
+            implementation(libs.circuit.overlay)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
